@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="title description">
+  <title id="title">Sample DJ event promo graphic</title>
+  <desc id="description">Abstract neon artwork for a fictional late-night radio session.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#16132e"/>
+      <stop offset=".55" stop-color="#422056"/>
+      <stop offset="1" stop-color="#e34d91"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop stop-color="#ffb5d7" stop-opacity=".9"/>
+      <stop offset="1" stop-color="#ff55a7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="640" height="400" fill="url(#background)"/>
+  <circle cx="445" cy="180" r="175" fill="url(#glow)"/>
+  <circle cx="445" cy="180" r="104" fill="none" stroke="#ffd0e5" stroke-opacity=".75" stroke-width="2"/>
+  <circle cx="445" cy="180" r="75" fill="none" stroke="#ffd0e5" stroke-opacity=".6" stroke-width="1"/>
+  <circle cx="445" cy="180" r="44" fill="#17132d" fill-opacity=".72" stroke="#fff" stroke-opacity=".8"/>
+  <circle cx="445" cy="180" r="8" fill="#ff83bb"/>
+  <path d="M340 180h210M445 75v210M371 106l148 148m0-148L371 254" stroke="#fff" stroke-opacity=".36"/>
+  <path d="M0 335c110-74 188-22 285-70s166-24 253-71 91-25 102-21v227H0z" fill="#141228" fill-opacity=".68"/>
+  <text x="42" y="58" fill="#ffd0e5" font-family="Arial, sans-serif" font-size="15" font-weight="700" letter-spacing="4">DELA CASA RADIO</text>
+  <text x="40" y="211" fill="#fff" font-family="Arial, sans-serif" font-size="63" font-weight="800" letter-spacing="1">AFTER</text>
+  <text x="40" y="275" fill="#fff" font-family="Arial, sans-serif" font-size="63" font-weight="800" letter-spacing="1">HOURS</text>
+  <text x="44" y="320" fill="#ffd0e5" font-family="Arial, sans-serif" font-size="14" font-weight="700" letter-spacing="3">DJ MIX SERIES · VOL. 01</text>
+</svg>
