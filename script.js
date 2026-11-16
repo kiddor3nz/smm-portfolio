@@ -4,7 +4,15 @@ const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 const roadmapLinks = [...document.querySelectorAll(".roadmap__link")];
 const roadmapPath = document.querySelector(".roadmap__centerline");
 const walker = document.querySelector(".roadmap__walker");
-const roadCards = [...document.querySelectorAll(".work-sample, .technology-card")];
+const roadmap = document.querySelector(".roadmap");
+const portfolioTabs = [...document.querySelectorAll('[role="tab"]')];
+const descriptionMeta = document.querySelector('meta[name="description"]');
+const workViewer = document.querySelector("#work-viewer");
+const workViewerMedia = workViewer.querySelector(".work-viewer__media");
+const workViewerCaption = workViewer.querySelector(".work-viewer__caption");
+let roadCards = [
+  ...document.querySelectorAll("#social-media-portfolio .work-sample, #social-media-portfolio .technology-card"),
+];
 
 const pointer = { x: -1000, y: -1000, active: false };
 let particles = [];
@@ -20,6 +28,54 @@ const colors = [
   [111, 204, 255],
 ];
 let roadmapFrame = 0;
+
+function activatePortfolioTab(tab, moveFocus = false) {
+  const isSocialMedia = tab.id === "social-media-tab";
+
+  for (const portfolioTab of portfolioTabs) {
+    const isSelected = portfolioTab === tab;
+    portfolioTab.classList.toggle("is-active", isSelected);
+    portfolioTab.setAttribute("aria-selected", String(isSelected));
+    portfolioTab.tabIndex = isSelected ? 0 : -1;
+
+    if (isSelected) {
+      document.title = portfolioTab.dataset.title;
+      descriptionMeta.content = portfolioTab.dataset.description;
+    }
+
+    const panel = document.getElementById(portfolioTab.getAttribute("aria-controls"));
+    panel.hidden = !isSelected;
+  }
+
+  if (moveFocus) tab.focus();
+  roadmap.hidden = !isSocialMedia;
+  roadCards = isSocialMedia
+    ? [
+        ...document.querySelectorAll(
+          "#social-media-portfolio .work-sample, #social-media-portfolio .technology-card",
+        ),
+      ]
+    : [];
+  window.scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
+  measureRoadCards();
+  updateRoadmap();
+}
+
+for (const [index, tab] of portfolioTabs.entries()) {
+  tab.addEventListener("click", () => activatePortfolioTab(tab));
+  tab.addEventListener("keydown", (event) => {
+    let nextIndex = index;
+
+    if (event.key === "ArrowRight") nextIndex = (index + 1) % portfolioTabs.length;
+    else if (event.key === "ArrowLeft") nextIndex = (index - 1 + portfolioTabs.length) % portfolioTabs.length;
+    else if (event.key === "Home") nextIndex = 0;
+    else if (event.key === "End") nextIndex = portfolioTabs.length - 1;
+    else return;
+
+    event.preventDefault();
+    activatePortfolioTab(portfolioTabs[nextIndex], true);
+  });
+}
 
 function createParticles() {
   const count = Math.min(56, Math.max(28, Math.round((width * height) / 24000)));
@@ -183,6 +239,170 @@ function updateRoadmap() {
   });
 }
 
+async function findPortfolioMedia(prefix, index) {
+  for (const extension of ["jpg", "jpeg", "png", "webp", "gif"]) {
+    const image = new Image();
+    const loaded = await new Promise((resolve) => {
+      image.addEventListener("load", () => resolve(true), { once: true });
+      image.addEventListener("error", () => resolve(false), { once: true });
+      image.src = `assets/${prefix}${index}.${extension}`;
+    });
+
+    if (loaded) return { type: "image", src: image.src };
+  }
+
+  for (const extension of ["mp4", "webm"]) {
+    const video = document.createElement("video");
+    const loaded = await new Promise((resolve) => {
+      const timeout = window.setTimeout(() => resolve(false), 5000);
+      video.addEventListener(
+        "loadedmetadata",
+        () => {
+          window.clearTimeout(timeout);
+          resolve(true);
+        },
+        { once: true },
+      );
+      video.addEventListener(
+        "error",
+        () => {
+          window.clearTimeout(timeout);
+          resolve(false);
+        },
+        { once: true },
+      );
+      video.preload = "metadata";
+      video.src = `assets/${prefix}${index}.${extension}`;
+    });
+
+    if (loaded) return { type: "video", src: video.src };
+  }
+
+  return null;
+}
+
+function createPortfolioWorkSample(media, index, portfolioName) {
+  const sample = document.createElement("details");
+  sample.className = "work-sample";
+
+  const trigger = document.createElement("summary");
+  trigger.className = "work-sample__trigger";
+
+  const preview = document.createElement("span");
+  preview.className = "work-sample__preview work-sample__preview--poster";
+
+  const number = String(index).padStart(2, "0");
+  const label = document.createElement("span");
+  label.className = "work-sample__index";
+  label.textContent = `${number} / ${portfolioName.toUpperCase()}`;
+
+  let workMedia;
+  if (media.type === "video") {
+    workMedia = document.createElement("video");
+    workMedia.className = "work-sample__image work-sample__video";
+    workMedia.src = media.src;
+    workMedia.muted = true;
+    workMedia.preload = "metadata";
+    workMedia.playsInline = true;
+
+    const play = document.createElement("span");
+    play.className = "work-sample__play";
+    play.setAttribute("aria-hidden", "true");
+    preview.append(play);
+  } else {
+    workMedia = document.createElement("img");
+    workMedia.className = "work-sample__image";
+    workMedia.src = media.src;
+    workMedia.alt = `${portfolioName} social media work sample ${index}`;
+  }
+
+  const plus = document.createElement("span");
+  plus.className = "work-sample__plus";
+  plus.setAttribute("aria-hidden", "true");
+  plus.textContent = "+";
+
+  const caption = document.createElement("span");
+  caption.className = "work-sample__caption";
+  caption.textContent = `${portfolioName} — ${number}`;
+
+  const detail = document.createElement("p");
+  detail.className = "work-sample__detail";
+  detail.textContent = media.type === "video" ? "Select to play video." : "Select to view full size.";
+
+  preview.append(label, workMedia, plus);
+  trigger.append(preview, caption);
+  sample.append(trigger, detail);
+  sample.dataset.mediaType = media.type;
+
+  return sample;
+}
+
+async function loadPortfolioWork(prefix, portfolioName, galleryId) {
+  const gallery = document.getElementById(galleryId);
+  const samples = [];
+
+  for (let index = 1; ; index += 1) {
+    const media = await findPortfolioMedia(prefix, index);
+    if (!media) break;
+    samples.push(createPortfolioWorkSample(media, index, portfolioName));
+  }
+
+  gallery.append(...samples);
+
+  if (samples.length > 0) {
+    roadCards = [
+      ...document.querySelectorAll(
+        "#social-media-portfolio .work-sample, #social-media-portfolio .technology-card",
+      ),
+    ];
+    measureRoadCards();
+    updateRoadmap();
+  }
+}
+
+document.querySelector(".experience__inner").addEventListener("click", (event) => {
+  const summary = event.target.closest(".work-sample__trigger");
+  if (!summary) return;
+
+  event.preventDefault();
+  const sample = summary.closest(".work-sample");
+  const source = sample.querySelector(".work-sample__image");
+  workViewerMedia.replaceChildren();
+  workViewerCaption.textContent = summary.querySelector(".work-sample__caption").textContent;
+
+  if (sample.dataset.mediaType === "video") {
+    const video = document.createElement("video");
+    video.className = "work-viewer__video";
+    video.src = source.currentSrc || source.src;
+    video.controls = true;
+    video.autoplay = true;
+    video.muted = true;
+    video.playsInline = true;
+    workViewerMedia.append(video);
+  } else {
+    const image = document.createElement("img");
+    image.src = source.currentSrc || source.src;
+    image.alt = source.alt;
+    workViewerMedia.append(image);
+  }
+
+  document.body.classList.add("is-viewer-open");
+  workViewer.showModal();
+});
+
+workViewer.addEventListener("click", (event) => {
+  if (event.target === workViewer) workViewer.close();
+});
+
+workViewer.querySelector(".work-viewer__close").addEventListener("click", () => {
+  workViewer.close();
+});
+
+workViewer.addEventListener("close", () => {
+  document.body.classList.remove("is-viewer-open");
+  workViewerMedia.replaceChildren();
+});
+
 function updateRoadCards() {
   if (roadCards.length === 0) return;
 
@@ -247,5 +467,7 @@ document.addEventListener(
 );
 measureRoadCards();
 updateRoadmap();
+loadPortfolioWork("dlc", "Dela Casa Radio", "dela-work-grid");
+loadPortfolioWork("fs", "Four Stripes", "four-stripes-work-grid");
 reducedMotion.addEventListener("change", updateMotionPreference);
 resizeCanvas();
