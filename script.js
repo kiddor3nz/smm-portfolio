@@ -10,9 +10,32 @@ const descriptionMeta = document.querySelector('meta[name="description"]');
 const workViewer = document.querySelector("#work-viewer");
 const workViewerMedia = workViewer.querySelector(".work-viewer__media");
 const workViewerCaption = workViewer.querySelector(".work-viewer__caption");
-let roadCards = [
-  ...document.querySelectorAll("#social-media-portfolio .work-sample, #social-media-portfolio .technology-card"),
-];
+const roadmapStops = {
+  "social-media-tab": [
+    { href: "#intro", label: "Intro" },
+    { href: "#experience", label: "Experience" },
+    { href: "#dela-casa", label: "Dela Casa Radio" },
+    { href: "#four-stripes", label: "Four Stripes" },
+    { href: "#editing-tools", label: "Editing Tools" },
+  ],
+  "web-developer-tab": [
+    { href: "#web-intro", label: "Intro" },
+    { href: "#web-projects", label: "Experience" },
+    { href: "#selected-projects", label: "Projects" },
+    { href: "#developer-skills", label: "Technical Skills" },
+    { href: "#developer-certifications", label: "Certifications" },
+  ],
+};
+const socialRoadCardSelector =
+  "#social-media-portfolio .work-sample, #social-media-portfolio .technology-card, #social-media-portfolio .client-proof .work-sample";
+const developerRoadCardSelector = [
+  "#web-developer-portfolio .developer-project",
+  "#web-developer-portfolio .selected-project",
+  "#web-developer-portfolio .developer-service",
+  "#web-developer-portfolio .developer-certifications",
+  "#web-developer-portfolio .client-proof .work-sample",
+].join(", ");
+let roadCards = [...document.querySelectorAll(socialRoadCardSelector)];
 
 const pointer = { x: -1000, y: -1000, active: false };
 let particles = [];
@@ -31,6 +54,7 @@ let roadmapFrame = 0;
 
 function activatePortfolioTab(tab, moveFocus = false) {
   const isSocialMedia = tab.id === "social-media-tab";
+  const activeRoadmap = roadmapStops[tab.id];
 
   for (const portfolioTab of portfolioTabs) {
     const isSelected = portfolioTab === tab;
@@ -48,14 +72,19 @@ function activatePortfolioTab(tab, moveFocus = false) {
   }
 
   if (moveFocus) tab.focus();
-  roadmap.hidden = !isSocialMedia;
-  roadCards = isSocialMedia
-    ? [
-        ...document.querySelectorAll(
-          "#social-media-portfolio .work-sample, #social-media-portfolio .technology-card",
-        ),
-      ]
-    : [];
+  roadmap.hidden = !activeRoadmap;
+  if (activeRoadmap) {
+    roadmapLinks.forEach((link, index) => {
+      link.href = activeRoadmap[index].href;
+      link.querySelector(".roadmap__label").textContent = activeRoadmap[index].label;
+    });
+  }
+  const roadCardSelector = isSocialMedia
+    ? socialRoadCardSelector
+    : tab.id === "web-developer-tab"
+      ? developerRoadCardSelector
+      : null;
+  roadCards = roadCardSelector ? [...document.querySelectorAll(roadCardSelector)] : [];
   window.scrollTo({ top: 0, behavior: reducedMotion.matches ? "auto" : "smooth" });
   measureRoadCards();
   updateRoadmap();
@@ -205,7 +234,7 @@ function updateRoadmap() {
 
   roadmapFrame = window.requestAnimationFrame(() => {
     roadmapFrame = 0;
-    const readingLine = window.innerHeight * 0.45;
+    const readingLine = window.innerHeight * 0.2;
     let activeLink = roadmapLinks[0];
 
     for (const link of roadmapLinks) {
@@ -313,7 +342,9 @@ function createPortfolioWorkSample(media, index, portfolioName) {
     workMedia = document.createElement("img");
     workMedia.className = "work-sample__image";
     workMedia.src = media.src;
-    workMedia.alt = `${portfolioName} social media work sample ${index}`;
+    workMedia.alt = portfolioName === "Client Proof"
+      ? `Web development proof ${index}`
+      : `${portfolioName} social media work sample ${index}`;
   }
 
   const plus = document.createElement("span");
@@ -350,17 +381,64 @@ async function loadPortfolioWork(prefix, portfolioName, galleryId) {
   gallery.append(...samples);
 
   if (samples.length > 0) {
-    roadCards = [
-      ...document.querySelectorAll(
-        "#social-media-portfolio .work-sample, #social-media-portfolio .technology-card",
-      ),
-    ];
+    roadCards = [...document.querySelectorAll(socialRoadCardSelector)];
     measureRoadCards();
     updateRoadmap();
   }
 }
 
-document.querySelector(".experience__inner").addEventListener("click", (event) => {
+async function findProofMedia(folder, filename) {
+  const image = new Image();
+  const loaded = await new Promise((resolve) => {
+    image.addEventListener("load", () => resolve(true), { once: true });
+    image.addEventListener("error", () => resolve(false), { once: true });
+    image.src = `assets/${folder}/${filename}`;
+  });
+
+  return loaded ? { type: "image", src: image.src } : null;
+}
+
+async function loadClientProof(galleryId = "client-proof-grid", proofMode = "development") {
+  const gallery = document.getElementById(galleryId);
+  if (!gallery) return;
+
+  const proofFiles = proofMode === "development"
+    ? [
+        { filename: "Gemini_Generated_Image_4l35nq4l35nq4l35.jpg", title: "FCMS Dashboard" },
+        { filename: "efc02f0a-e13f-482a-8560-5036dde48bc7.webp", title: "AEVM Age Groups" },
+      ]
+    : [
+        { filename: "image.png", title: "Zoom Client Meeting" },
+      ];
+  const folder = proofMode === "development" ? "proofs" : "smmproof";
+
+  const samples = [];
+  let proofIndex = 1;
+  for (const proof of proofFiles) {
+    const { filename } = proof;
+    const title = proof.title;
+    const media = await findProofMedia(folder, filename);
+    if (media) {
+      const sample = createPortfolioWorkSample(media, proofIndex, proofMode === "development" ? "Client Proof" : "Social Media Proof");
+      sample.querySelector(".work-sample__caption").textContent = title;
+      sample.querySelector(".work-sample__image").alt = title;
+      samples.push(sample);
+      proofIndex += 1;
+    }
+  }
+
+  gallery.append(...samples);
+
+  if (samples.length > 0) {
+    roadCards = [...document.querySelectorAll(
+      proofMode === "development" ? developerRoadCardSelector : socialRoadCardSelector,
+    )];
+    measureRoadCards();
+    updateRoadmap();
+  }
+}
+
+document.addEventListener("click", (event) => {
   const summary = event.target.closest(".work-sample__trigger");
   if (!summary) return;
 
@@ -469,5 +547,7 @@ measureRoadCards();
 updateRoadmap();
 loadPortfolioWork("dlc", "Dela Casa Radio", "dela-work-grid");
 loadPortfolioWork("fs", "Four Stripes", "four-stripes-work-grid");
+loadClientProof("smm-client-proof-grid", "social");
+loadClientProof("client-proof-grid", "development");
 reducedMotion.addEventListener("change", updateMotionPreference);
 resizeCanvas();
