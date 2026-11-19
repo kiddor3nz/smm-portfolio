@@ -90,6 +90,22 @@ function activatePortfolioTab(tab, moveFocus = false) {
   updateRoadmap();
 }
 
+for (const link of roadmapLinks) {
+  link.addEventListener("click", () => {
+    if (reducedMotion.matches) return;
+
+    link.querySelector(".roadmap__dot").animate(
+      [
+        { transform: "translateY(0) scale(1)" },
+        { transform: "translateY(-9px) scale(1.2)", offset: 0.35 },
+        { transform: "translateY(0) scale(0.92)", offset: 0.7 },
+        { transform: "translateY(0) scale(1)" },
+      ],
+      { duration: 520, easing: "cubic-bezier(0.34, 1.56, 0.64, 1)" },
+    );
+  });
+}
+
 for (const [index, tab] of portfolioTabs.entries()) {
   tab.addEventListener("click", () => activatePortfolioTab(tab));
   tab.addEventListener("keydown", (event) => {
