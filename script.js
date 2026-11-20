@@ -424,7 +424,9 @@ async function loadClientProof(galleryId = "client-proof-grid", proofMode = "dev
         { filename: "efc02f0a-e13f-482a-8560-5036dde48bc7.webp", title: "AEVM Age Groups" },
       ]
     : [
-        { filename: "image.png", title: "Zoom Client Meeting" },
+        { filename: "29f9dea9-06bc-45e8-b5f5-d60b66d9c5f0.webp", title: "Social Media Client Proof" },
+        { filename: "d5419122-84b4-47d3-a6f5-fc0638940fe5.webp", title: "Social Media Team Proof" },
+        { filename: "new.jpg", title: "Social Media Meeting Proof" },
       ];
   const folder = proofMode === "development" ? "proofs" : "smmproof";
 
